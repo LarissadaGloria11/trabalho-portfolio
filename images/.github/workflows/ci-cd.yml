@@ -1,0 +1,89 @@
+name: CI/CD Portfólio
+
+# Gatilhos
+on:
+  pull_request:
+    branches: [ main ] # CI roda em PR para main
+  push:
+    branches: [ main ] # CD roda no merge/push para main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  # ======== CI - Integração Contínua ========
+  ci:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [18, 20] # Matrix Strategy
+    steps:
+      - name: Checkout do código
+        uses: actions/checkout@v3
+
+      - name: Verificar se index.html existe
+        run: |
+          if [ ! -f index.html ]; then
+            echo "ERRO: index.html não encontrado!"
+            exit 1
+          fi
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ matrix.node-version }}
+
+      - name: Instalar dependências (HTMLLint)
+        run: npm install -g htmlhint
+
+      - name: Rodar Linter HTML
+        run: htmlhint index.html
+
+      - name: Bloquear arquivos grandes (>500KB)
+        run: |
+          find . -type f -size +500k | grep .
+          if [ $? -eq 0 ]; then
+            echo "ERRO: Existe arquivo maior que 500KB!"
+            exit 1
+          fi
+
+      - name: Bloquear comentários sensíveis
+        run: |
+          grep -RiE "TODO|FIXME|senha|password" . && exit 1 || echo "Nenhum comentário proibido encontrado."
+
+      - name: Validar links e imagens
+        run: |
+          # Verificar links externos
+          grep -oP 'href="\K[^"]+' index.html | while read link; do
+            if [[ ! $link =~ ^https?:// ]]; then
+              echo "Link inválido encontrado: $link"
+              exit 1
+            fi
+          done
+          # Verificar imagens
+          grep -oP 'src="\K[^"]+' index.html | while read img; do
+            if [ ! -f "$img" ]; then
+              echo "Imagem não encontrada: $img"
+              exit 1
+            fi
+          done
+
+  # ======== CD - Deploy no GitHub Pages ========
+  deploy:
+    needs: ci
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout do código
+        uses: actions/checkout@v3
+
+      - name: Configurar Pages
+        uses: actions/configure-pages@v3
+
+      - name: Deploy para GitHub Pages
+        uses: actions/deploy-pages@v1
+        with:
+          branch: gh-pages
+          folder: .
