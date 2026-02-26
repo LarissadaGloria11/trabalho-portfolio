@@ -1,0 +1,21 @@
+name: CD Deploy
+
+on:
+  push:
+    branches: [main]   # Só dispara quando algo vai para main
+
+permissions:
+  pages: write         # Permite publicar no GitHub Pages
+  contents: read
+  id-token: write
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v6
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./   # Publica os arquivos da raiz
