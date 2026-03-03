@@ -3,7 +3,7 @@ name: Teste de Secret
 on:
   push:
     branches:
-      - main
+      - ci-setup
 
 jobs:
   testar-secret:
