@@ -1,0 +1,14 @@
+name: Teste de Secret
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  testar-secret:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Exibir Secret
+        run: echo "A chave é ${{ secrets.CHAVE_MESTRA }}"
